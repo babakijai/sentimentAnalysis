@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bank Sentiment Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title text-center mb-4">Bank Sentiment Analyzer</h2>
+            <form action="/analyze" method="post">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Your Name</label>
+                    <input type="text" name="name" id="name" class="form-control" placeholder="John" required>
+                </div>
+                <div class="mb-3">
+                    <label for="feedback" class="form-label">Feedback with Hashtags</label>
+                    <textarea name="feedback" id="feedback" class="form-control" rows="3" placeholder="Example: Facing issues with services at #wellsfargo" required></textarea>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary">Analyze</button>
+                </div>
+            </form>
+            <form action="/filter" method="post" class="mt-4">
+            <h5>Filter Feedback by Date</h5>
+            <div class="row">
+                <div class="col">
+                    <input type="date" name="start_date" class="form-control" required>
+                </div>
+                <div class="col">
+                    <input type="date" name="end_date" class="form-control" required>
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-secondary">Apply Filter</button>
+                </div>
+            </div>
+        </form>
+
+        </div>
+    </div>
+
+
+    {% if last_sentiment %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h4>Last Feedback Submitted:</h4>
+            <p><strong>Name:</strong> {{ last_feedback.name }}</p>
+            <p><strong>Feedback:</strong> {{ last_feedback.feedback }}</p>
+            <p><strong>Date:</strong> {{ last_submited_on }}</p>
+            <h4 class="text-success">Sentiment: {{ last_sentiment }}</h4>
+
+            <h4 class="mt-4">Named Entities:</h4>
+            <ul class="list-group">
+                {% for ent, label in entities %}
+                    <li class="list-group-item"><strong>{{ ent }}</strong> ({{ label }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="mt-4">Reputation Stats:</h5>
+            <ul class="list-group">
+                <li class="list-group-item">Total Feedbacks: {{ stats.total }}</li>
+                <li class="list-group-item">Positive: {{ stats.positive }}</li>
+                <li class="list-group-item">Neutral: {{ stats.neutral }}</li>
+                <li class="list-group-item">Negative: {{ stats.negative }}</li>
+            </ul>
+            <h3 class="mt-3">Market Mood Score: {{ mood_score }} ({{ mood_label }})</h3>
+            <h5 class="mt-4">Word Cloud:</h5>
+            <img src="{{ wordcloud_url }}" alt="Word Cloud" class="img-fluid border rounded">
+
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="mb-3">Sentiment Count by Hashtag</h5>
+            <canvas id="sentimentChart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="card shadow-sm mt-4">
+        <div class="card-body" style="max-width: 300px; margin: auto;">
+            <h5 class="mb-3">Sentiment Distribution</h5>
+            <canvas id="pieChart" ></canvas>
+        </div>
+    </div>
+    <div class="card shadow-sm mt-4">
+        <div class="card-body" style="max-width: 300px; margin: auto;">
+            <h5 class="mb-3">Trend Distribution</h5>
+            <canvas id="trendChart" height="80"></canvas>
+        </div>
+    </div>
+
+    {% endif %}
+     {% if filtered %}
+     <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="mb-3">Filtered Feedbacks</h5>
+            <ul class="list-group">
+                {% for fb in filtered %}
+               <h5 class="mt-3">- {{ fb.category }}</h5>
+                <li class="list-group-item">
+                    <strong>{{ fb.name }}</strong>: {{ fb.feedback }} [{{ fb.sentiment }}] ({{ fb.timestamp }})
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if last_sentiment %}
+<script>
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: chartData.positive,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                },
+                {
+                    label: 'Neutral',
+                    data: chartData.neutral,
+                    backgroundColor: 'rgba(201, 203, 207, 0.7)'
+                },
+                {
+                    label: 'Negative',
+                    data: chartData.negative,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Hashtag-wise Sentiment Analysis'
+                }
+            }
+        }
+    });
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Positive', 'Neutral', 'Negative'],
+            datasets: [{
+                data: [{{ stats.positive }}, {{ stats.neutral }}, {{ stats.negative }}],
+                backgroundColor: ['#4CAF50', '#9E9E9E', '#F44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Overall Sentiment Distribution'
+                }
+            }
+        }
+    });
+    const trendData = JSON.parse('{{ trend_data | tojson | safe }}');
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendData.dates,
+            datasets: [
+                {
+                    label: 'Positive',
+                    data: trendData.positive,
+                    borderColor: 'green',
+                    fill: false
+                },
+                {
+                    label: 'Negative',
+                    data: trendData.negative,
+                    borderColor: 'red',
+                    fill: false
+                },
+                {
+                    label: 'Neutral',
+                    data: trendData.neutral,
+                    borderColor: 'gray',
+                    fill: false
+                }
+            ]
+        }
+    });
+</script>
+{% endif %}
+</body>
+</html>
