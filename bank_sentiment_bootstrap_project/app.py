@@ -23,6 +23,35 @@ vader = SentimentIntensityAnalyzer()
 feedback_store = []
 sentiment_counts = {}  # {"#hashtag": {"positive": 0, "neutral": 0, "negative": 0}}
 
+# Load only once to avoid reloading on every call
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+# Predefined categories
+CATEGORIES = ["Complaint", "Praise", "Suggestion", "Inquiry", "General"]
+
+def detect_category(text, threshold=0.5):
+    """
+    Categorizes text using zero-shot classification.
+
+    Args:
+        text (str): The input user message.
+        threshold (float): Confidence threshold to trust prediction.
+
+    Returns:
+        str: One of "Complaint", "Praise", "Suggestion", "Inquiry", "General"
+    """
+    if not text.strip():
+        return "General"
+
+    result = classifier(text, CATEGORIES)
+    top_label = result['labels'][0]
+    top_score = result['scores'][0]
+
+    if top_score < threshold:
+        return "General"
+    return top_label
+
+
 def extract_hashtags(text):
     hashtags = re.findall(r"#\w+(?:_\w+)*", text)
     normalized = [tag.lower() for tag in hashtags]
