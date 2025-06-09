@@ -24,9 +24,14 @@ feedback_store = []
 sentiment_counts = {}  # {"#hashtag": {"positive": 0, "neutral": 0, "negative": 0}}
 
 def extract_hashtags(text):
-    hashtags = re.findall(r"#\w+", text)
-    normalized = [tag.lower() for tag in hashtags]  # Convert to lowercase
-    return normalized
+    hashtags = re.findall(r"#\w+(?:_\w+)*", text)
+    normalized = [tag.lower() for tag in hashtags]
+    
+    # Check if any of the hashtags is wells_fargo or wellsfargo (case-insensitive)
+    if any(tag in ['#wellsfargo', '#wells_fargo'] for tag in normalized):
+        return normalized
+    else:
+        return []
 
 def get_sentiment(feedback):
     scores = vader.polarity_scores(feedback)
