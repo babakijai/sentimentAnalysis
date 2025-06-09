@@ -39,6 +39,19 @@
             </div>
         </form>
 
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Import Feedbacks from Excel/CSV</h5>
+                <form action="/import" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="file" accept=".csv, .xlsx" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Upload & Import</button>
+                </form>
+            </div>
+        </div>
+
+
         </div>
     </div>
 
@@ -59,6 +72,11 @@
                 {% endfor %}
             </ul>
         </div>
+    </div>
+
+    <div class="card p-3 shadow-sm">
+        <h5 class="card-title">Feedback Summary</h5>
+        <p class="card-text">{{ summary_text | safe}}</p>
     </div>
 
     <div class="card shadow-sm mt-4">
