@@ -29,6 +29,17 @@ classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnl
 # Predefined categories
 CATEGORIES = ["Complaint", "Praise", "Suggestion", "Inquiry", "General"]
 
+def extract_hashtags(text):
+    # Improved pattern to capture hashtags with underscores
+    hashtags = re.findall(r"#\w+(?:_\w+)*", text)
+    normalized = [tag.lower() for tag in hashtags]
+
+    # Filter for tags that contain both 'wells' and 'fargo'
+    result = [tag for tag in normalized if 'wells' in tag and 'fargo' in tag]
+
+    return result
+
+
 def detect_category(text, threshold=0.5):
     """
     Categorizes text using zero-shot classification.
